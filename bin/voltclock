@@ -1,0 +1,73 @@
+#!/usr/bin/python3
+#
+#
+#
+#
+
+import os
+import sys
+import logging
+import optparse
+
+from configparser import ConfigParser
+
+bindir = os.path.abspath(os.path.dirname(__file__))
+sys.path.insert(0, bindir + "/../lib")
+
+from clockdriver import ClockDriver
+
+def main():
+
+
+    # Populate our options, -h/--help is already there for you.
+    optp = optparse.OptionParser()
+    optp.add_option('-v', '--verbose', dest='verbose', action='count',
+                    help="Increase verbosity")
+
+    # Parse the arguments (defaults to parsing sys.argv).
+    opts, args = optp.parse_args()
+
+    config = ConfigParser()
+
+    config.read( [os.path.abspath(os.path.join(os.path.dirname(__file__), '../etc/voltclock.ini')),
+                  ])
+
+    # convert INFO into logging.INFO symbol
+    log_level = eval("logging.%s" % config.get('logger', 'level'))
+
+    if opts.verbose:
+        log_level = logging.DEBUG
+
+    # Set up basic configuration, out to stderr with a reasonable default format.
+    if sys.stdout.isatty():
+        logging.basicConfig(level=log_level,
+                        format=config.get('logger', 'format', raw=True),
+                        datefmt=config.get('logger', 'datefmt', raw=True),
+                       )
+    else:
+        logging.basicConfig(level=log_level,
+                        format=config.get('logger', 'format', raw=True),
+                        datefmt=config.get('logger', 'datefmt', raw=True),
+                        filename=config.get('logger', 'filename')
+                       )
+    
+    logging.info("Voltclock Starting")
+
+    clock = ClockDriver( config )
+
+    try:
+        clock.run()
+
+    except KeyboardInterrupt:
+            pass
+
+    logging.info("Voltclock Stopping")
+
+    clock.stop()
+    
+
+    return
+
+#
+if __name__ == "__main__":
+        sys.exit( main() )
